@@ -14,6 +14,7 @@ library(BAMMtools)
 ## add 2016 pop data for map denominators
 ## add rate adjustment to plots, maps
 ## add ncands
+## format for load Rdata rather than reading csv, quicker startup
 
 
 dat<-read_csv("afcars-long-round.csv")
@@ -405,7 +406,8 @@ server <- function(input, output){
                                                               ifelse(rate<=rate.jenks[6],6,
                                                                      7)))))))
       
-     rate.jenks<-round(rate.jenks,1)
+     rate.jenks<-round(rate.jenks,2)
+     if(length(unique(rate.jenks))==7){
        temp$rate.jenks<-ordered(temp$rate.jenks, levels=unique(temp$rate.jenks)[order(unique(temp$rate.jenks))],
                                 labels=c(paste("0-",rate.jenks[1], sep=""),
                                          paste(rate.jenks[1],"-",rate.jenks[2],sep=""),
@@ -414,7 +416,9 @@ server <- function(input, output){
                                          paste(rate.jenks[4],"-",rate.jenks[5], sep=""),
                                          paste(rate.jenks[5],"-",rate.jenks[6],sep=""),
                                          paste(rate.jenks[6], "-", sep="")
-                                         ))
+                                ))} else{
+       temp$rate.jenks<-"Insufficient Data"
+     }
        temp$state<-tolower(temp$state)
        return(temp)
    }) 
@@ -465,6 +469,13 @@ server <- function(input, output){
     
     temp<-newDat_map()
 
+    if("Insufficient Data"%in%temp$rate.jenks){
+      df <- data.frame()
+      ggplot(df) + geom_point() + xlim(0, 10) + ylim(0, 100)
+      p<-ggplot(df) + 
+        geom_blank() + 
+        ggtitle("Insufficient data to generate map, please select different variables")
+    } else{
     # map_id creates the aesthetic mapping to the state name column in your dat
     p <- ggplot(temp, aes(map_id = state)) +
       # map points to the fifty_states shape dat
@@ -479,7 +490,7 @@ server <- function(input, output){
             panel.background = element_blank()) +
       scale_fill_brewer(type="seq", palette = "OrRd", name="Rate per 1,000\nchild population") + 
       coord_map("albers", lat0 = 39, lat1 = 45)
-    
+    }
     p
 })
     
