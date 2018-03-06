@@ -58,7 +58,11 @@ pop$race<-recode(pop$race,
 pop<-pop%>%
   rename(RACE=race)
 
-
+state_pop<-pop%>%
+  group_by(state, stname, RACE, year)%>%
+  summarise(pop = sum(pop))%>%
+  rename(fy = year)%>%
+  filter(!(is.na(state)))
 
 race.labels<-levels(dat$RaceEthn)
 i<-which(race.labels%in%c("Total"))
@@ -66,22 +70,22 @@ i<-which(race.labels%in%c("Total"))
 dat<-dat%>%
   rename(RACE=RaceEthn)
 ################## CHECK ON THIS - MAYBE FLIPPING DRUG AB PARENT DRUG AB CHILD
-rem.labels<-c("All removals",
-              "Alcohol abuse: child",
-              "Alcohol abuse: parent",
-              "Abandonment",
-              "Child behavior problem",
-              "Child disability",
-              "Drug abuse: child",
-              "Drug abuse: parent",
-              "Inadequate housing",
-              "Neglect",
-              "Caretaker inability to cope",
-              "Physical abuse",
-              "Parent death",
-              "Parent incarcerated",
-              "Relinquishment",
-              "Sexual abuse")
+rem.labels<-list("All removals",
+                 "Alcohol abuse: child"="AACHILD",
+                 "Alcohol abuse: parent"="AAPARENT",
+                 "Abandonment"="ABANDMNT",
+                 "Child behavior problem"="CHBEHPRB",
+                 "Child disability"="CHILDIS",
+                 "Drug abuse: child"="DACHILD",
+                 "Drug abuse: parent"="DAPARENT",
+                 "Inadequate housing"="HOUSING",
+                 "Neglect"="NEGLECT",
+                 "Caretaker inability to cope"="NOCOPE",
+                 "Physical abuse"="PHYABUSE",
+                 "Parent death"="PRTSDIED",
+                 "Parent incarcerated"="PRTSJAIL",
+                 "Relinquishment"="RELINQSH",
+                 "Sexual abuse"="SEXABUSE")
 
 dat<-dat%>%
   filter(!(is.na(state)))
@@ -131,7 +135,7 @@ ui <- fluidPage(theme=shinytheme("flatly"),
       condition="input.type == 'tsplot'",
       selectInput("state",
                   "Place",
-                    c("US",
+                    c("US total" = "US",
                       unique(as.character(dat$state)))),
       selectInput("cl_type",
                   "Caseload type",
@@ -140,25 +144,14 @@ ui <- fluidPage(theme=shinytheme("flatly"),
                   "Exits")),
       selectInput("rem_reason",
                   "Removal reason",
-                  c("All removals",
-                    "Alcohol abuse: child"="AACHILD",
-                    "Alcohol abuse: parent"="AAPARENT",
-                    "Abandonment"="ABANDMNT",
-                    "Child behavior problem"="CHBEHPRB",
-                    "Child disability"="CHILDIS",
-                    "Drug abuse: child"="DACHILD",
-                    "Drug abuse: parent"="DAPARENT",
-                    "Inadequate housing"="HOUSING",
-                    "Neglect"="NEGLECT",
-                    "Caretaker inability to cope"="NOCOPE",
-                    "Physical abuse"="PHYABUSE",
-                    "Parent death"="PRTSDIED",
-                    "Parent incarcerated"="PRTSJAIL",
-                    "Relinquishment"="RELINQSH",
-                    "Sexual abuse"="SEXABUSE")),
+                  rem.labels),
       selectInput("race",
                   "Child race/ethnicity",
                   c(race.labels)),
+      selectInput("rate",
+                  "Output type",
+                  c("Count of cases" = "count",
+                    "Rate per 1,000 child population" = "rate")),
       downloadButton('downloadData_plot', 'Download data')
       ),
     
@@ -173,9 +166,9 @@ ui <- fluidPage(theme=shinytheme("flatly"),
                   c("All",
                     unique(as.character(dat$fy)))),
       selectInput("state1",
-                  "Place",
-                  c("US",
-                    "All",
+                  "State",
+                  c("US total" = "US",
+                    "All states" = "All",
                     unique(as.character(dat$state)))),
       selectInput("cl_type1",
                   "Caseload type",
@@ -184,25 +177,14 @@ ui <- fluidPage(theme=shinytheme("flatly"),
                   "Exits")),
       selectInput("rem_reason1",
                   "Removal reason",
-                  c("All removals",
-                    "Alcohol abuse: child"="AACHILD",
-                    "Alcohol abuse: parent"="AAPARENT",
-                    "Abandonment"="ABANDMNT",
-                    "Child behavior problem"="CHBEHPRB",
-                    "Child disability"="CHILDIS",
-                    "Drug abuse: child"="DACHILD",
-                    "Drug abuse: parent"="DAPARENT",
-                    "Inadequate housing"="HOUSING",
-                    "Neglect"="NEGLECT",
-                    "Caretaker inability to cope"="NOCOPE",
-                    "Physical abuse"="PHYABUSE",
-                    "Parent death"="PRTSDIED",
-                    "Parent incarcerated"="PRTSJAIL",
-                    "Relinquishment"="RELINQSH",
-                    "Sexual abuse"="SEXABUSE")),
+                  rem.labels),
       selectInput("race1",
                   "Child race/ethnicity",
                   c(race.labels)),
+      # selectInput("rate1",
+      #             "Output type",
+      #             c("Count of cases" = "count",
+      #               "Rate per 1,000 child population" = "rate")),
       downloadButton('downloadData_table', 'Download data')
       ),
     
@@ -222,22 +204,7 @@ ui <- fluidPage(theme=shinytheme("flatly"),
                   "Exits")),
       selectInput("rem_reason2",
                   "Removal reason",
-                  c("All removals",
-                    "Alcohol abuse: child"="AACHILD",
-                    "Alcohol abuse: parent"="AAPARENT",
-                    "Abandonment"="ABANDMNT",
-                    "Child behavior problem"="CHBEHPRB",
-                    "Child disability"="CHILDIS",
-                    "Drug abuse: child"="DACHILD",
-                    "Drug abuse: parent"="DAPARENT",
-                    "Inadequate housing"="HOUSING",
-                    "Neglect"="NEGLECT",
-                    "Caretaker inability to cope"="NOCOPE",
-                    "Physical abuse"="PHYABUSE",
-                    "Parent death"="PRTSDIED",
-                    "Parent incarcerated"="PRTSJAIL",
-                    "Relinquishment"="RELINQSH",
-                    "Sexual abuse"="SEXABUSE")),
+                  rem.labels),
       selectInput("race2",
                   "Child race/ethnicity",
                   c(race.labels)),
@@ -266,7 +233,7 @@ ui <- fluidPage(theme=shinytheme("flatly"),
         Figures may have errors and are presented for demonstration purposes only. 
         Data are subject to random rounding and may not identically match other published figures.
         Do not interpret for research purposes. 
-        For best results, please use Chrome on a desktop/laptop.
+        For best results, please use Firefox or Chrome. 
         All questions/comments can be directed to fedwards@cornell.edu")
   
 )
@@ -287,11 +254,16 @@ server <- function(input, output){
   
   newDat_plot<-reactive({ #### rewrite for reactive data for download
         temp<-dat
+        
+        pop_temp<-state_pop
         if(input$race!="Total"){
           temp<-temp%>%filter(RACE==input$race)
+          pop_temp<-pop_temp%>%filter(RACE==input$race)
         }
         if(input$race=="Total"){
           temp<-temp%>%filter(RACE=="Total")
+          pop_temp<-pop_temp%>%filter(RACE=="Total")
+          
         }
         
         if(input$rem_reason!="All removals"){
@@ -306,6 +278,12 @@ server <- function(input, output){
             select(Placements)%>%
             summarise(Placements=sum(Placements, na.rm=TRUE))%>%
             ungroup()
+          
+          pop_temp<-pop_temp%>%
+            dplyr::filter(state == input$state)%>%
+            group_by(fy, state)%>%
+            summarise(pop = sum(pop, na.rm=TRUE))%>%
+            ungroup()
           } 
         if(input$state=="US"){
           temp<-temp%>%
@@ -314,7 +292,17 @@ server <- function(input, output){
             select(Placements)%>%
             summarise(Placements=sum(Placements, na.rm=TRUE))%>%
             ungroup()
+          
+          pop_temp<-pop_temp%>%
+            group_by(fy)%>%
+            summarise(pop = sum(pop, na.rm=TRUE))
         }
+        if(input$rate == "rate"){
+          temp<-left_join(temp, 
+                          pop_temp)%>%
+            mutate(Placements = 1000 * Placements / pop,
+                   Type = "Rate per 1,000 child population")
+        } else{temp$Type = "Count of cases"}
     return(temp)
   })
 
@@ -322,24 +310,33 @@ server <- function(input, output){
   ###################### TABLE
   newDat_table<-reactive({
       temp<-dat
+      pop_temp<-state_pop
+      
       temp<-temp%>%
         filter(cl_type==input$cl_type1)
+      
       if(input$rem_reason1!="All removals"){
         index<-which(names(dat)==input$rem_reason1)
         temp$Placements<-temp[, index]
       }
       if(input$race1!="Total"){
         temp<-temp%>%filter(RACE==input$race1)
+        pop_temp<-pop_temp%>%filter(RACE==input$race1)
       }
       if(input$race1=="Total"){
         temp<-temp%>%filter(RACE=="Total")
+        pop_temp<-pop_temp%>%filter(RACE=="Total")
       }
       if(input$fy1!="All"){
         temp<- temp%>%
           dplyr::filter(fy==as.numeric(input$fy1))
+        pop_temp<- pop_temp%>%
+          dplyr::filter(fy==as.numeric(input$fy1))
       }
       if(input$state1!="All" & input$state1!="US"){
         temp<- temp%>%
+          dplyr::filter(state==input$state1)
+        pop_temp<- pop_temp%>%
           dplyr::filter(state==input$state1)
       }
       if(input$state1!="US"){
@@ -350,6 +347,11 @@ server <- function(input, output){
           select(-cl_type)%>%
           rename(Year=fy, State=state)%>%
           ungroup()
+        pop_temp<-pop_temp%>%
+          group_by(fy, state)%>%
+          summarise(pop = sum(pop, na.rm=TRUE))%>%
+          rename(Year=fy, State=state)%>%
+          ungroup()
       } else{
         temp<-temp%>%
           group_by(fy, cl_type)%>%
@@ -358,7 +360,18 @@ server <- function(input, output){
           select(-cl_type)%>%
           rename(Year=fy)%>%
           ungroup()
+        pop_temp<-pop_temp%>%
+          group_by(fy)%>%
+          summarise(pop = sum(pop, na.rm = TRUE))%>%
+          rename(Year=fy)%>%
+          ungroup()
       }
+      temp<-left_join(temp, 
+                        pop_temp)%>%
+        mutate('Rate per 1,000 child population' = round(1000 * Placements / pop,2))%>%
+        rename('Count of cases' = Placements)%>%
+        select(-pop)
+      
       return(temp)
   })
     
@@ -432,10 +445,10 @@ server <- function(input, output){
   output$tsplot<-renderPlot({
     temp<-newDat_plot()
     
-    gg<-ggplot(temp) + 
+    p<-ggplot(temp) + 
       aes(x=fy, y=Placements)+
       geom_line()+
-      ylab("Placements") + 
+      ylab(temp$Type[1]) + 
       xlab("Year") + 
       scale_x_continuous(breaks=unique(temp$fy))+
       # ggtitle(paste(input$cl_type, " in ", 
@@ -445,7 +458,7 @@ server <- function(input, output){
       #               sep=""))+
       theme(text=element_text(size=14))
     
-    gg
+    p
       
   })
   
