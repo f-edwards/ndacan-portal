@@ -163,7 +163,7 @@ ui <- fluidPage(theme=shinytheme("flatly"),
       condition="input.type == 'table'",
       selectInput("fy1",
                   "Year",
-                  c("All",
+                  c("All years" = "All",
                     unique(as.character(dat$fy)))),
       selectInput("state1",
                   "State",
@@ -470,9 +470,10 @@ server <- function(input, output){
   output$table <- DT::renderDataTable(DT::datatable({
     
     temp<-newDat_table()
-    temp
+    temp%>%
+      arrange(desc(Year))
     
-  }, options=list(lengthChange=TRUE), rownames = FALSE))
+  }, options=list(lengthChange=TRUE, pageLength=15), rownames = FALSE))
   
   #################################################################################
   ## MAP, var2
