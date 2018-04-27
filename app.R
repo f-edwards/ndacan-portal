@@ -3,115 +3,23 @@ rm(list=ls())
 library(shiny)
 library(tidyverse)
 library(DT)
-library(ggplot2)
-library(RColorBrewer)
+ library(RColorBrewer)
 library(mapproj)
 library(fiftystater)
 library(shinythemes)
 library(BAMMtools)
 
 #### to do
-## add 2016 pop data for map denominators
-## add rate adjustment to plots, maps
 ## add ncands
-## format for load Rdata rather than reading csv, quicker startup
+##### going to have to revise UI for NCANDS variables. 
 
+files<-list.files()
+if("pre_load.RData"%in%files){
+  load("pre_load.RData")
+} else{
+  source("read.r")
+}
 
-dat<-read_csv("afcars-long-round.csv")
-
-dat$RaceEthn<-factor(dat$RaceEthn, 
-                     levels = c("Total",
-                                "African American, Non-Hispanic",
-                                "American Indian or Alaska Native, Non-Hispanic",
-                                "Asian, Non-Hispanic",
-                                "Hispanic (Any Race)",
-                                "Native Hawaiian or Other Pacific Islander, Non-Hispanic",
-                                "White, Non-Hispanic",
-                                "Two or More Races, Non-Hispanic",
-                                "Race/Ethnicity Unknown"))
-
-data(state)
-st<-data.frame(stname=state.abb, 
-               state=state.name)
-st$stname<-as.character(st$stname); st$state<-as.character(st$state)
-
-dat<-dat%>%
-  rename(stname=state)%>%
-  left_join(st)
-
-pop<-read_csv("seer-pop.csv")
-
-pop<-pop%>%
-  rename(stname=state)
-
-pop<-pop%>%
-  left_join(st)
-
-pop$race<-recode(pop$race,
-             "Total" = "Total",
-             "African American" = "African American, Non-Hispanic",
-             "American Indian/Alaska Native" = "American Indian or Alaska Native, Non-Hispanic",
-             "Asian/Pacific Islander" = "Asian, Non-Hispanic",
-             "Latino/a" = "Hispanic (Any Race)",
-             "White" = "White, Non-Hispanic")
-
-pop<-pop%>%
-  rename(RACE=race)
-
-state_pop<-pop%>%
-  group_by(state, stname, RACE, year)%>%
-  summarise(pop = sum(pop))%>%
-  rename(fy = year)%>%
-  filter(!(is.na(state)))
-
-race.labels<-levels(dat$RaceEthn)
-i<-which(race.labels%in%c("Total"))
-
-dat<-dat%>%
-  rename(RACE=RaceEthn)
-################## CHECK ON THIS - MAYBE FLIPPING DRUG AB PARENT DRUG AB CHILD
-rem.labels<-list("All removals",
-                 "Alcohol abuse: child"="AACHILD",
-                 "Alcohol abuse: parent"="AAPARENT",
-                 "Abandonment"="ABANDMNT",
-                 "Child behavior problem"="CHBEHPRB",
-                 "Child disability"="CHILDIS",
-                 "Drug abuse: child"="DACHILD",
-                 "Drug abuse: parent"="DAPARENT",
-                 "Inadequate housing"="HOUSING",
-                 "Neglect"="NEGLECT",
-                 "Caretaker inability to cope"="NOCOPE",
-                 "Physical abuse"="PHYABUSE",
-                 "Parent death"="PRTSDIED",
-                 "Parent incarcerated"="PRTSJAIL",
-                 "Relinquishment"="RELINQSH",
-                 "Sexual abuse"="SEXABUSE")
-
-dat<-dat%>%
-  filter(!(is.na(state)))
-
-dat$state<-factor(as.character(dat$state))
-
-# curplset.labels<-c("Pre-adoptive home", 
-#                    "Relative foster home", 
-#                    "Non-relative foster home", 
-#                    "Group home", 
-#                    "Institution",
-#                    "Supervised independent living",
-#                    "Runaway",
-#                    "Trial home visit")
-# 
-# curplset.codes<-function(x){
-#   code.out<-ifelse(x=="Pre-adoptive home", "1",
-#                    ifelse(x=="Relative foster home", "2",
-#                           ifelse(x=="Non-relative foster home", "3",
-#                                  ifelse(x=="Group home", "4",
-#                                         ifelse(x=="Institution", "5", 
-#                                                ifelse(x=="Supervised independent living", "6",
-#                                                       ifelse(x=="Runaway", "7", 
-#                                                              ifelse(x=="Trial home visit", "8", "NULL"))))))))
-#   return(code.out)
-# }
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(theme=shinytheme("flatly"),
@@ -314,7 +222,7 @@ server <- function(input, output){
       
       temp<-temp%>%
         filter(cl_type==input$cl_type1)
-      
+      #### Placements has total unique cases, rewrite it with removal reason count it not all cases
       if(input$rem_reason1!="All removals"){
         index<-which(names(dat)==input$rem_reason1)
         temp$Placements<-temp[, index]
